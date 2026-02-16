@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Step-by-Step Lent Calculator</title>
+    <style>
+        :root { --p: #4a148c; --bg: #f4f4f9; --accent: #ffd700; }
+        body { font-family: 'Courier New', monospace; background: var(--bg); display: flex; justify-content: center; padding: 20px; }
+        .terminal { background: #1e1e1e; color: #32cd32; width: 100%; max-width: 650px; padding: 25px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); min-height: 500px; }
+        .input-line { margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        input { background: transparent; border: 1px solid #32cd32; color: #32cd32; font-family: inherit; font-size: 1.2rem; width: 80px; text-align: center; }
+        button { background: #32cd32; color: #1e1e1e; border: none; padding: 5px 15px; cursor: pointer; font-weight: bold; }
+        .log { line-height: 1.5; font-size: 0.95rem; }
+        .cursor { display: inline-block; width: 10px; height: 18px; background: #32cd32; animation: blink 1s infinite; vertical-align: middle; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .final-result { color: var(--accent); font-size: 1.3rem; margin-top: 20px; border: 1px dashed var(--accent); padding: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="terminal">
+    <div class="input-section">
+        <span class="prompt">SYSTEM_YEAR_INPUT > </span>
+        <input type="number" id="yearVal" value="2026">
+        <button onclick="runCalculation()">RUN CALCULATION</button>
+    </div>
+    
+    <div id="output" class="log"></div>
+    <div id="cursor" class="cursor"></div>
+</div>
+
+<script>
+    const output = document.getElementById('output');
+    
+    async function print(text, delay = 500) {
+        const line = document.createElement('div');
+        line.innerHTML = `> ${text}`;
+        output.appendChild(line);
+        window.scrollTo(0, document.body.scrollHeight);
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+
+    async function runCalculation() {
+        const Y = parseInt(document.getElementById('yearVal').value);
+        output.innerHTML = ""; // Clear previous
+        
+        await print(`INITIALIZING COMPUTUS FOR YEAR ${Y}...`);
+        await print(`---------------------------------------`, 200);
+
+        // 1. Metonic Cycle
+        await print(`STEP 1: Calculating Metonic Cycle (Golden Number)`);
+        const a = Y % 19;
+        await print(`MATH: ${Y} mod 19 = <span style="color:white">${a}</span>`);
+
+        // 2. Solar Correction
+        await print(`STEP 2: Century and Solar tracking`);
+        const b = Math.floor(Y / 100);
+        const c = Y % 100;
+        await print(`MATH: b = floor(${Y}/100) = <span style="color:white">${b}</span>`);
+        await print(`MATH: c = ${Y} mod 100 = <span style="color:white">${c}</span>`);
+
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        await print(`MATH: d = floor(${b}/4) = <span style="color:white">${d}</span>`);
+
+        // 3. Lunar Equation
+        await print(`STEP 3: Syncing Lunar Month to Solar Year`);
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        await print(`MATH: Correction g = <span style="color:white">${g}</span>`);
+
+        // 4. Finding Epact
+        await print(`STEP 4: Locating the Paschal Full Moon (Epact)`);
+        const h = (19 * a + b - d - g + 15) % 30;
+        await print(`MATH: Full Moon Offset h = <span style="color:white">${h}</span>`);
+
+        // 5. Weekday Alignment
+        await print(`STEP 5: Finding the first Sunday following`);
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        await print(`MATH: Sunday Letter Index l = <span style="color:white">${l}</span>`);
+
+        // 6. Calculation of Easter
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        
+        const easter = new Date(Y, month - 1, day);
+        await print(`EASTER SUNDAY FOUND: <span style="color:white">${easter.toDateString()}</span>`, 1000);
+
+        // 7. Reverting to Ash Monday
+        await print(`STEP 7: Shifting -48 days to find Ash Monday...`);
+        const ashMonday = new Date(easter);
+        ashMonday.setDate(easter.getDate() - 48);
+
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'final-result';
+        resultDiv.innerHTML = `SUCCESS: ASH MONDAY ${Y} falls on <br>${ashMonday.toLocaleDateString(undefined, {weekday: 'long', month: 'long', day: 'numeric'})}`;
+        output.appendChild(resultDiv);
+    }
+</script>
+
+</body>
+</html>
