@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lent Journey | Liquid Glass</title>
+    <style>
+        :root {
+            /* These will be updated dynamically by JS */
+            --dynamic-color-1: #6a11cb;
+            --dynamic-color-2: #2575fc;
+            --glass-white: rgba(255, 255, 255, 0.12);
+            --border-white: rgba(255, 255, 255, 0.2);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: #0a0a0c;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            color: white;
+            transition: background 1s ease;
+        }
+
+        /* Animated Liquid Orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 1;
+            animation: float 25s infinite alternate;
+            opacity: 0.6;
+            transition: background 2s ease;
+        }
+        .orb-1 { width: 500px; height: 500px; background: var(--dynamic-color-1); top: -15%; left: -10%; }
+        .orb-2 { width: 600px; height: 600px; background: var(--dynamic-color-2); bottom: -15%; right: -10%; animation-delay: -7s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(150px, 50px) scale(1.1); }
+        }
+
+        .glass-card {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 480px;
+            padding: 2.5rem;
+            background: var(--glass-white);
+            backdrop-filter: blur(30px) saturate(150%);
+            -webkit-backdrop-filter: blur(30px) saturate(150%);
+            border-radius: 35px;
+            border: 1px solid var(--border-white);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .current-date-box {
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .current-time {
+            font-size: 2.2rem;
+            font-weight: 200;
+            margin-bottom: 25px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--dynamic-color-2);
+            transition: color 2s ease;
+        }
+
+        .dates {
+            font-size: 0.85rem;
+            opacity: 0.5;
+            margin-bottom: 30px;
+        }
+
+        .progress-container {
+            background: rgba(255, 255, 255, 0.08);
+            height: 8px;
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--dynamic-color-1), var(--dynamic-color-2));
+            transition: width 2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .status-main { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+        .status-sub { font-size: 0.9rem; opacity: 0.6; font-weight: 400; }
+
+        .footer {
+            margin-top: 35px;
+            font-size: 0.65rem;
+            opacity: 0.3;
+            letter-spacing: 2px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="orb orb-1" id="orb1"></div>
+    <div class="orb orb-2" id="orb2"></div>
+
+    <div class="glass-card">
+        <div class="current-date-box" id="cur-date">MONDAY, FEB 16</div>
+        <div class="current-time" id="cur-time">00:00:00</div>
+        
+        <h1>Great Lent Tracker</h1>
+        <div class="dates" id="date-range">...</div>
+
+        <div class="status-main" id="status-text">Synchronizing...</div>
+        
+        <div class="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+
+        <div class="status-sub" id="days-left">...</div>
+
+        <div class="footer">
+            DYNAMIC INTERFACE // SYSTEM ACTIVE
+        </div>
+    </div>
+
+<script>
+    // 1. Dynamic Color Engine
+    function updateColors() {
+        const now = new Date();
+        const startOfYear = new Date(now.getFullYear(), 0, 0);
+        const diff = now - startOfYear;
+        const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+        
+        // Use the day of the year to rotate hue (0-360)
+        const hue1 = dayOfYear % 360;
+        const hue2 = (dayOfYear + 40) % 360; // Complementary shift
+        
+        const color1 = `hsl(${hue1}, 70%, 50%)`;
+        const color2 = `hsl(${hue2}, 80%, 60%)`;
+        
+        document.documentElement.style.setProperty('--dynamic-color-1', color1);
+        document.documentElement.style.setProperty('--dynamic-color-2', color2);
+    }
+
+    // 2. Real-time Clock
+    function updateClock() {
+        const now = new Date();
+        const options = { weekday: 'long', month: 'short', day: 'numeric' };
+        document.getElementById('cur-date').innerText = now.toLocaleDateString(undefined, options);
+        document.getElementById('cur-time').innerText = now.toLocaleTimeString(undefined, { hour12: false });
+    }
+
+    // 3. Lent Logic (Ash Monday Start)
+    function calculateEaster(y) {
+        const a = y % 19, b = Math.floor(y / 100), c = y % 100,
+              d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
+              g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
+              i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7,
+              m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        return new Date(y, month - 1, day);
+    }
+
+    function initTracker() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const easter = calculateEaster(year);
+        const ashMonday = new Date(easter);
+        ashMonday.setDate(easter.getDate() - 48);
+
+        document.getElementById('date-range').innerText = 
+            `${ashMonday.toLocaleDateString(undefined, {month:'short', day:'numeric'})} — ${easter.toLocaleDateString(undefined, {month:'short', day:'numeric'})}`;
+
+        const total = easter - ashMonday;
+        const current = now - ashMonday;
+        const statusText = document.getElementById('status-text');
+        const daysLeft = document.getElementById('days-left');
+        const bar = document.getElementById('progress-bar');
+
+        if (now < ashMonday) {
+            const diff = Math.ceil((ashMonday - now) / 86400000);
+            statusText.innerText = "Fast Approaching";
+            daysLeft.innerText = `${diff} days until Ash Monday`;
+        } else if (now > easter) {
+            statusText.innerText = "He is Risen";
+            daysLeft.innerText = "Pascha has arrived.";
+            bar.style.width = "100%";
+        } else {
+            const pct = Math.min(Math.floor((current / total) * 100), 100);
+            const remaining = Math.ceil((easter - now) / 86400000);
+            statusText.innerText = `Lent: Day ${Math.floor(current / 86400000) + 1}`;
+            daysLeft.innerText = `${remaining} days remaining`;
+            setTimeout(() => bar.style.width = pct + "%", 500);
+        }
+    }
+
+    // Start everything
+    setInterval(updateClock, 1000);
+    updateColors();
+    updateClock();
+    initTracker();
+</script>
+</body>
+</html>
