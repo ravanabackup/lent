@@ -6,7 +6,6 @@
     <title>Lent Journey | Liquid Glass</title>
     <style>
         :root {
-            /* These will be updated dynamically by JS */
             --dynamic-color-1: #6a11cb;
             --dynamic-color-2: #2575fc;
             --glass-white: rgba(255, 255, 255, 0.12);
@@ -35,7 +34,7 @@
             z-index: 1;
             animation: float 25s infinite alternate;
             opacity: 0.6;
-            transition: background 2s ease;
+            transition: background 3s ease; /* Smoother color transitions */
         }
         .orb-1 { width: 500px; height: 500px; background: var(--dynamic-color-1); top: -15%; left: -10%; }
         .orb-2 { width: 600px; height: 600px; background: var(--dynamic-color-2); bottom: -15%; right: -10%; animation-delay: -7s; }
@@ -126,7 +125,7 @@
     <div class="orb orb-2" id="orb2"></div>
 
     <div class="glass-card">
-        <div class="current-date-box" id="cur-date">MONDAY, FEB 16</div>
+        <div class="current-date-box" id="cur-date">--</div>
         <div class="current-time" id="cur-time">00:00:00</div>
         
         <h1>Great Lent Tracker</h1>
@@ -146,19 +145,20 @@
     </div>
 
 <script>
-    // 1. Dynamic Color Engine
+    // 1. Enhanced Dynamic Color Engine
     function updateColors() {
         const now = new Date();
         const startOfYear = new Date(now.getFullYear(), 0, 0);
         const diff = now - startOfYear;
         const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
         
-        // Use the day of the year to rotate hue (0-360)
-        const hue1 = dayOfYear % 360;
-        const hue2 = (dayOfYear + 40) % 360; // Complementary shift
+        // Multiplied by 15 so the color shift is roughly 15 degrees per day.
+        // This makes the background visibly different every 24 hours.
+        const baseHue = (dayOfYear * 15) % 360;
+        const hue2 = (baseHue + 60) % 360; // Secondary color shifted for contrast
         
-        const color1 = `hsl(${hue1}, 70%, 50%)`;
-        const color2 = `hsl(${hue2}, 80%, 60%)`;
+        const color1 = `hsl(${baseHue}, 65%, 45%)`;
+        const color2 = `hsl(${hue2}, 75%, 55%)`;
         
         document.documentElement.style.setProperty('--dynamic-color-1', color1);
         document.documentElement.style.setProperty('--dynamic-color-2', color2);
@@ -172,7 +172,7 @@
         document.getElementById('cur-time').innerText = now.toLocaleTimeString(undefined, { hour12: false });
     }
 
-    // 3. Lent Logic (Ash Monday Start)
+    // 3. Lent Logic (Calculates Orthodox/Great Lent based on Easter)
     function calculateEaster(y) {
         const a = y % 19, b = Math.floor(y / 100), c = y % 100,
               d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25),
@@ -188,40 +188,52 @@
         const now = new Date();
         const year = now.getFullYear();
         const easter = calculateEaster(year);
-        const ashMonday = new Date(easter);
-        ashMonday.setDate(easter.getDate() - 48);
+        
+        // Great Lent starts 48 days before Easter (Clean Monday)
+        const startLent = new Date(easter);
+        startLent.setDate(easter.getDate() - 48);
 
         document.getElementById('date-range').innerText = 
-            `${ashMonday.toLocaleDateString(undefined, {month:'short', day:'numeric'})} — ${easter.toLocaleDateString(undefined, {month:'short', day:'numeric'})}`;
+            `${startLent.toLocaleDateString(undefined, {month:'short', day:'numeric'})} — ${easter.toLocaleDateString(undefined, {month:'short', day:'numeric'})}`;
 
-        const total = easter - ashMonday;
-        const current = now - ashMonday;
+        const totalDuration = easter - startLent;
+        const timePassed = now - startLent;
+        
         const statusText = document.getElementById('status-text');
-        const daysLeft = document.getElementById('days-left');
+        const daysLeftDisplay = document.getElementById('days-left');
         const bar = document.getElementById('progress-bar');
 
-        if (now < ashMonday) {
-            const diff = Math.ceil((ashMonday - now) / 86400000);
+        if (now < startLent) {
+            const diff = Math.ceil((startLent - now) / 86400000);
             statusText.innerText = "Fast Approaching";
-            daysLeft.innerText = `${diff} days until Ash Monday`;
+            daysLeftDisplay.innerText = `${diff} days until Clean Monday`;
+            bar.style.width = "0%";
         } else if (now > easter) {
-            statusText.innerText = "He is Risen";
-            daysLeft.innerText = "Pascha has arrived.";
+            statusText.innerText = "He is Risen!";
+            daysLeftDisplay.innerText = "The Fast has concluded.";
             bar.style.width = "100%";
         } else {
-            const pct = Math.min(Math.floor((current / total) * 100), 100);
+            const pct = Math.min(Math.floor((timePassed / totalDuration) * 100), 100);
             const remaining = Math.ceil((easter - now) / 86400000);
-            statusText.innerText = `Lent: Day ${Math.floor(current / 86400000) + 1}`;
-            daysLeft.innerText = `${remaining} days remaining`;
-            setTimeout(() => bar.style.width = pct + "%", 500);
+            const currentDay = Math.floor(timePassed / 86400000) + 1;
+            
+            statusText.innerText = `Lent: Day ${currentDay}`;
+            daysLeftDisplay.innerText = `${remaining} days remaining`;
+            
+            // Trigger animation after load
+            setTimeout(() => bar.style.width = pct + "%", 600);
         }
     }
 
-    // Start everything
-    setInterval(updateClock, 1000);
+    // 4. Execution Loop
     updateColors();
     updateClock();
     initTracker();
+
+    setInterval(updateClock, 1000);      // Update clock every second
+    setInterval(updateColors, 60000);    // Update colors every minute (in case date flips)
+    setInterval(initTracker, 3600000);   // Refresh Lent logic every hour
 </script>
+
 </body>
 </html>
