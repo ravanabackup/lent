@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liturgical Computation Engine</title>
+    <style>
+        :root { 
+            --bg-color: #0d0d0d;
+            --term-bg: #1a1a1a;
+            --text-main: #00ff00; /* Classic Terminal Green */
+            --text-dim: #008f00;
+            --text-highlight: #ccff00;
+            --text-info: #00ffff;
+            --text-alert: #ff3333;
+        }
+        
+        body { 
+            font-family: 'Courier New', monospace; 
+            background: var(--bg-color); 
+            display: flex; 
+            justify-content: center; 
+            padding: 20px; 
+            margin: 0;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .terminal { 
+            background: var(--term-bg); 
+            color: var(--text-main); 
+            width: 100%; 
+            max-width: 800px; 
+            padding: 20px; 
+            border: 2px solid #333;
+            border-radius: 8px; 
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.1); 
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        input { 
+            background: #000; 
+            border: 1px solid var(--text-dim); 
+            color: var(--text-highlight); 
+            font-family: inherit; 
+            font-size: 1.1rem; 
+            width: 100px; 
+            text-align: center; 
+            padding: 8px;
+        }
+
+        button { 
+            background: var(--text-dim); 
+            color: #000; 
+            border: none; 
+            padding: 10px 25px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button:hover { background: var(--text-main); }
+
+        .log-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            padding-right: 10px;
+        }
+
+        /* Scrollbar styling */
+        .log-container::-webkit-scrollbar { width: 8px; }
+        .log-container::-webkit-scrollbar-track { background: #000; }
+        .log-container::-webkit-scrollbar-thumb { background: #333; }
+
+        .line { margin-bottom: 4px; animation: fadeIn 0.2s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .dim { color: #666; }
+        .val { color: var(--text-highlight); font-weight: bold; }
+        .op { color: #888; }
+        .success { color: var(--text-info); font-weight: bold; margin-top: 10px; margin-bottom: 10px; border: 1px dashed var(--text-info); padding: 10px; }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            margin: 10px 0;
+            display: none;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--text-main);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="terminal">
+    <div class="header">
+        <span>TARGET_YEAR_INPUT >> </span>
+        <input type="number" id="yearVal" value="2026">
+        <button onclick="startSequence()">INITIATE</button>
+    </div>
+    
+    <div class="progress-bar" id="pBar"><div class="progress-fill" id="pFill"></div></div>
+    <div id="log" class="log-container">
+        <div class="line">Ready for input...</div>
+    </div>
+</div>
+
+<script>
+    const log = document.getElementById('log');
+    const pBar = document.getElementById('pBar');
+    const pFill = document.getElementById('pFill');
+    
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    // Utility: Async delay
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+    // Utility: Write to terminal
+    function write(html, type = "") {
+        const div = document.createElement('div');
+        div.className = "line " + type;
+        div.innerHTML = `> ${html}`;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    // Utility: Format Date
+    function niceDate(d) {
+        return `<span class="val">${d.getDate()} ${months[d.getMonth()]}</span>`;
+    }
+
+    async function startSequence() {
+        const Y = parseInt(document.getElementById('yearVal').value);
+        if(!Y) return;
+
+        // Reset
+        log.innerHTML = "";
+        pBar.style.display = "block";
+        pFill.style.width = "0%";
+
+        write(`INITIALIZING COMPUTUS PROTOCOL FOR YEAR <span class="val">${Y}</span>...`);
+        await wait(600);
+        
+        // --- STEP 1: METONIC CYCLE ---
+        write(`<span class="dim">--- PHASE 1: LUNAR SYNCHRONIZATION ---</span>`);
+        await wait(300);
+        write(`Calculating Golden Number (Position in 19-year lunar cycle)`);
+        
+        const a = Y % 19;
+        write(`OP: ${Y} % 19 = <span class="val">${a}</span>`);
+        pFill.style.width = "10%";
+        await wait(500);
+
+        // --- STEP 2: SOLAR CORRECTION ---
+        write(`<span class="dim">--- PHASE 2: SOLAR CORRECTION ---</span>`);
+        const b = Math.floor(Y / 100);
+        const c = Y % 100;
+        write(`Century Calculation: floor(${Y}/100) = <span class="val">${b}</span>`);
+        await wait(300);
+        
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        write(`Leap Year Cycle: floor(${b}/4) = <span class="val">${d}</span>`);
+        pFill.style.width = "30%";
+        await wait(500);
+
+        // --- STEP 3: LUNAR ORBIT CORRECTION ---
+        write(`<span class="dim">--- PHASE 3: MOON ORBIT CORRECTION ---</span>`);
+        const f = Math.floor((b + 8) / 25);
+        write(`Proemptosis (Lunar equation): <span class="val">${f}</span>`);
+        const g = Math.floor((b - f + 1) / 3);
+        write(`Metemptosis (Solar equation): <span class="val">${g}</span>`);
+        await wait(500);
+
+        // --- STEP 4: EPACT CALCULATION ---
+        write(`<span class="dim">--- PHASE 4: EPACT & PASCHAL FULL MOON ---</span>`);
+        write(`Calculating Epact (Age of moon on Jan 1)...`);
+        const h = (19 * a + b - d - g + 15) % 30;
+        
+        // Animation of math
+        write(`<span class="op">(19*${a} + ${b} - ${d} - ${g} + 15) % 30</span>`);
+        await wait(400);
+        write(`RESULT h = <span class="val">${h}</span> days`);
+        pFill.style.width = "60%";
+        await wait(600);
+
+        // --- STEP 5: WEEKDAY ALIGNMENT ---
+        write(`<span class="dim">--- PHASE 5: WEEKDAY ALIGNMENT ---</span>`);
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        write(`Sunday Letter Offset (l): <span class="val">${l}</span>`);
+        await wait(400);
+
+        // --- STEP 6: FINAL DATE EXTRACTION ---
+        write(`Triangulating Month and Day...`);
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        pFill.style.width = "80%";
+        
+        const easter = new Date(Y, month - 1, day);
+        await wait(800);
+        
+        const easterStr = easter.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        write(`ANCHOR DATE LOCKED: EASTER SUNDAY IS <span class="val" style="color: #fff; background: #005500; padding: 2px;">${easterStr.toUpperCase()}</span>`);
+        write(`<br>`);
+        pFill.style.width = "100%";
+        await wait(1000);
+
+        // --- STEP 7: RELATIVE CALCULATIONS (ANIMATED) ---
+        write(`<span class="dim">--- PHASE 6: DERIVING LITURGICAL TIMELINE ---</span>`);
+        
+        // Helper for the final animation
+        async function animateEvent(name, offset, baseDate) {
+            write(`Calculating ${name}...`);
+            await wait(200);
+            
+            const target = new Date(baseDate);
+            target.setDate(baseDate.getDate() + offset);
+            
+            const operator = offset < 0 ? "-" : "+";
+            write(`<span class="op">Easter ${operator} ${Math.abs(offset)} days...</span>`);
+            await wait(300);
+            
+            write(`>> ${name.toUpperCase()} = ${niceDate(target)}`);
+            write(`<span class="dim">-------------------------</span>`);
+            await wait(400);
+        }
+
+        // ASH WEDNESDAY (-46)
+        await animateEvent("Ash Wednesday", -46, easter);
+
+        // MAUNDY THURSDAY (-3)
+        await animateEvent("Maundy Thursday", -3, easter);
+
+        // GOOD FRIDAY (-2)
+        await animateEvent("Good Friday", -2, easter);
+
+        // ASCENSION (+39)
+        await animateEvent("Ascension Day", 39, easter);
+
+        // PENTECOST (+49)
+        await animateEvent("Pentecost", 49, easter);
+
+        write(`<span class="success">CALCULATION SEQUENCE COMPLETE</span>`);
+        pBar.style.display = "none";
+    }
+</script>
+
+</body>
+</html>
