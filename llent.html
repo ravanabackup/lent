@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passion Week Liturgical Engine</title>
+    <style>
+        :root { 
+            --bg-color: #0d0d0d;
+            --term-bg: #1a1a1a;
+            --text-main: #00ff00; 
+            --text-dim: #008f00;
+            --text-highlight: #ccff00;
+            --text-info: #00ffff;
+            --text-alert: #ff3333;
+            --accent-red: #ff4444;
+        }
+        
+        body { 
+            font-family: 'Courier New', monospace; 
+            background: var(--bg-color); 
+            display: flex; 
+            justify-content: center; 
+            padding: 20px; 
+            margin: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .terminal { 
+            background: var(--term-bg); 
+            color: var(--text-main); 
+            width: 100%; 
+            max-width: 900px; 
+            padding: 20px; 
+            border: 2px solid #333;
+            border-radius: 8px; 
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.1); 
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            border-bottom: 1px solid #333;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input { 
+            background: #000; 
+            border: 1px solid var(--text-dim); 
+            color: var(--text-highlight); 
+            font-family: inherit; 
+            font-size: 1.1rem; 
+            width: 100px; 
+            text-align: center; 
+            padding: 8px;
+        }
+
+        button { 
+            background: var(--text-dim); 
+            color: #000; 
+            border: none; 
+            padding: 10px 25px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-family: inherit;
+            text-transform: uppercase;
+        }
+        button:hover { background: var(--text-main); }
+
+        .log-container {
+            flex-grow: 1;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .line { margin-bottom: 8px; border-left: 2px solid #333; padding-left: 10px; }
+        .dim { color: #666; }
+        .val { color: var(--text-highlight); font-weight: bold; }
+        .op { color: #888; font-style: italic; }
+        .service-name { color: var(--text-info); font-weight: bold; }
+        .service-details { color: #ddd; display: block; margin-left: 20px; font-size: 0.85rem; }
+        .highlight-red { color: var(--accent-red); }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            margin: 10px 0;
+            display: none;
+        }
+        .progress-fill { height: 100%; background: var(--text-main); width: 0%; transition: width 0.2s; }
+    </style>
+</head>
+<body>
+
+<div class="terminal">
+    <div class="header">
+        <span>PASSION_WEEK_GEN >> </span>
+        <input type="number" id="yearVal" value="2026">
+        <button onclick="startSequence()">GENERATE SCHEDULE</button>
+    </div>
+    
+    <div class="progress-bar" id="pBar"><div class="progress-fill" id="pFill"></div></div>
+    
+    <div id="log" class="log-container">
+        <div class="line">System ready. Enter year to compute Passion Week schedule...</div>
+    </div>
+</div>
+
+<script>
+    const log = document.getElementById('log');
+    const pFill = document.getElementById('pFill');
+    const pBar = document.getElementById('pBar');
+
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+    function write(html) {
+        const div = document.createElement('div');
+        div.className = "line";
+        div.innerHTML = html;
+        log.appendChild(div);
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    // Computus Algorithm (Meeus/Jones/Butcher) - Natively accounts for Leap Years
+    function getEaster(year) {
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        return new Date(year, month - 1, day);
+    }
+
+    async function startSequence() {
+        const Y = parseInt(document.getElementById('yearVal').value);
+        if(!Y) return;
+
+        log.innerHTML = "";
+        pBar.style.display = "block";
+        
+        const easter = getEaster(Y);
+        
+        // India Date Format Helper for Easter Anchor
+        const easterStrIN = easter.toLocaleDateString('en-IN', { 
+            timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' 
+        }).replace(/\//g, '.');
+
+        write(`>> COMPUTING PASSION WEEK FOR <span class="val">${Y}</span>`);
+        write(`<span class="op">Anchor Date (Resurrection Sunday): ${easterStrIN} (India Standard Time)</span>`);
+        await wait(500);
+
+        // Schedule Data based on offsets from Easter (Resurrection Sunday is 0)
+        // Note: Leap year shifts (like Feb 29) are handled automatically by JS Date Math
+        const schedule = [
+            { name: "Ash Wednesday", offset: -46, details: "Beginning of Lent (Holy Qurbana / Day of Ashes)" },
+            { name: "Friday (40th Day of Lent)", offset: -9, details: "Evening Prayer followed by <span class='highlight-red'>Holy Qurbana</span> (6:30 PM)" },
+            { name: "Saturday (Lazarus Saturday)", offset: -8, details: "Evening Prayer (6:30 PM)" },
+            { name: "Palm Sunday (Hosanna)", offset: -7, details: "Morning Prayer (7:00 AM)<br>Holy Qurbana followed by <span class='highlight-red'>Hosanna Service</span> (8:00 AM)<br>Evening Prayer & Devotional Address (6:30 PM)" },
+            { name: "Hasha Monday", offset: -6, details: "Evening Prayer (6:30 PM)<br>Devotional Address (7:15 PM)" },
+            { name: "Hasha Tuesday", offset: -5, details: "Evening Prayer (6:30 PM)<br>Devotional Address (7:15 PM)" },
+            { name: "Hasha Wednesday", offset: -4, details: "Evening Prayer (7:00 PM)<br><span class='highlight-red'>Holy Qurbana</span> (7:45 PM)" },
+            { name: "Maundy Thursday", offset: -3, details: "Evening Prayer (6:30 PM)<br>Devotional Address (7:15 PM)" },
+            { name: "Great Friday (Good Friday)", offset: -2, details: "<span class='highlight-red'>Morning Prayer</span> (8:00 AM)<br>Evening Prayer & Recitation of Psalms (6:30 PM)" },
+            { name: "Gospel Saturday", offset: -1, details: "Morning Prayer followed by Holy Qurbana (8:00 AM)<br>Evening Prayer (6:30 PM)" },
+            { name: "Resurrection Sunday (Easter)", offset: 0, details: "Night Prayer, Morning Prayer (4:30 AM)<br><span class='highlight-red'>Easter Service</span> followed by Holy Qurbana" }
+        ];
+
+        for (let i = 0; i < schedule.length; i++) {
+            const item = schedule[i];
+            
+            // Create a fresh date object based on Easter to prevent compounding errors
+            const targetDate = new Date(easter.getTime()); 
+            targetDate.setDate(targetDate.getDate() + item.offset);
+            
+            pFill.style.width = `${((i + 1) / schedule.length) * 100}%`;
+            
+            // Format to DD.MM.YYYY mapped to India Standard Time
+            const dateStr = targetDate.toLocaleDateString('en-IN', { 
+                timeZone: 'Asia/Kolkata', 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric' 
+            }).replace(/\//g, '.');
+            
+            write(`
+                <span class="dim">[${dateStr}]</span> 
+                <span class="service-name">${item.name}</span>
+                <span class="service-details">${item.details}</span>
+            `);
+            await wait(200);
+        }
+
+        write(`<br><span class="val" style="border: 1px solid var(--text-main); padding: 5px;">SEQUENCE COMPLETE: SCHEDULE COMPILED</span>`);
+        pBar.style.display = "none";
+    }
+</script>
+
+</body>
+</html>
