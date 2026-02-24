@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOSC Marriage Calendar | Dark Mode</title>
+    <style>
+        :root {
+            /* Dark Theme Palette */
+            --bg-deep: #0f0f0f;
+            --card-bg: #1a1a1a;
+            --text-main: #e0e0e0;
+            --text-dim: #999;
+            --mosc-red: #ff4444;
+            --mosc-gold: #ffc107;
+            --available-green: #00e676;
+            --prohibited-bg: rgba(255, 68, 68, 0.15);
+            --permitted-bg: rgba(0, 230, 118, 0.1);
+            --border-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid var(--mosc-red);
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+        }
+
+        .header h1 { margin: 0; font-size: 1.8rem; color: var(--mosc-gold); }
+        .header h2 { margin: 5px 0 0; font-size: 1.1rem; font-weight: 300; opacity: 0.8; }
+
+        .controls {
+            margin-bottom: 30px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 15px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            border: 1px solid var(--border-color);
+        }
+
+        input {
+            background: #000;
+            color: var(--mosc-gold);
+            padding: 8px;
+            font-size: 1.1rem;
+            width: 90px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        button {
+            padding: 10px 25px;
+            background: var(--mosc-red);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+
+        button:hover { background: #ff1744; transform: translateY(-1px); }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .month-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s;
+        }
+
+        .month-card:hover { border-color: var(--mosc-gold); }
+
+        .month-name {
+            color: var(--mosc-gold);
+            font-weight: bold;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+        }
+
+        .day-label { 
+            font-weight: bold; 
+            color: var(--text-dim); 
+            padding-bottom: 10px;
+            font-size: 0.8rem;
+        }
+        
+        .day {
+            padding: 10px 0;
+            margin: 2px;
+            border-radius: 6px;
+            cursor: default;
+            font-size: 0.95rem;
+            border: 1px solid transparent;
+            position: relative;
+        }
+
+        /* Status Styling */
+        .prohibited { 
+            background-color: var(--prohibited-bg); 
+            color: var(--mosc-red); 
+            text-decoration: line-through;
+            border-color: rgba(255, 68, 68, 0.2);
+        }
+
+        .permitted { 
+            background-color: var(--permitted-bg); 
+            color: var(--available-green); 
+            font-weight: bold; 
+            border-color: var(--available-green);
+        }
+
+        .neutral { color: var(--text-dim); }
+
+        /* Custom Tooltip Logic */
+        .day:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 110%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            z-index: 10;
+            pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            display: block;
+        }
+        .day[data-tooltip=""]::after { display: none; }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 40px;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-item { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+        .box { width: 18px; height: 18px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>MALANKARA ORTHODOX SYRIAN CHURCH</h1>
+        <h2>Holy Marriage Eligibility Calendar</h2>
+    </div>
+
+    <div class="controls">
+        <label style="color:var(--mosc-gold)">TARGET_YEAR:</label>
+        <input type="number" id="yearVal" value="2026">
+        <button onclick="renderCalendar()">Compute Calendar</button>
+    </div>
+
+    <div class="calendar-grid" id="calendarGrid"></div>
+
+    <div class="legend">
+        <div class="legend-item"><div class="box prohibited" style="opacity:1; background: var(--mosc-red)"></div> Prohibited (Lent/Fast)</div>
+        <div class="legend-item"><div class="box permitted" style="background: var(--available-green)"></div> High Eligibility (Sun/Thu)</div>
+        <div class="legend-item"><div class="box" style="border:1px solid var(--border-color)"></div> Permittable Weekdays</div>
+    </div>
+
+<script>
+    function getEaster(year) {
+        const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+        const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        return new Date(year, month - 1, day);
+    }
+
+    function getLentInfo(date, year, easter) {
+        const m = date.getMonth() + 1;
+        const d = date.getDate();
+        const checkTime = date.getTime();
+
+        // 1. Fixed Fasts
+        if (m === 8 && d >= 1 && d <= 13) return "13 Days Fast (Dormition)";
+        if (m === 9 && d >= 1 && d <= 8) return "8 Days Fast (Nativity of Mary)";
+        if (m === 12 && d >= 1 && d <= 25) return "25 Days Fast (Yeldo)";
+
+        // 2. Nineveh Fast (20 days before Great Lent starts)
+        const ninevehEnd = new Date(easter);
+        ninevehEnd.setDate(easter.getDate() - 69); // Wednesday of Nineveh
+        const ninevehStart = new Date(ninevehEnd);
+        ninevehStart.setDate(ninevehEnd.getDate() - 2); // Monday
+        if (checkTime >= ninevehStart.getTime() && checkTime <= ninevehEnd.getTime()) return "Nineveh Fast (3 Days)";
+
+        // 3. Great Lent (Starts 50 days before Easter)
+        const lentStart = new Date(easter);
+        lentStart.setDate(easter.getDate() - 49); // Clean Monday
+        if (checkTime >= lentStart.getTime() && checkTime <= easter.getTime()) return "Great Lent (50 Days)";
+
+        // 4. Ascension to Pentecost
+        const ascension = new Date(easter);
+        ascension.setDate(easter.getDate() + 39);
+        const pentecost = new Date(easter);
+        pentecost.setDate(easter.getDate() + 49);
+        if (checkTime >= ascension.getTime() && checkTime <= pentecost.getTime()) return "Ascension / Apostles' Fast Period";
+
+        return null;
+    }
+
+    function renderCalendar() {
+        const year = parseInt(document.getElementById('yearVal').value);
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+        const easter = getEaster(year);
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+        for (let m = 0; m < 12; m++) {
+            const card = document.createElement('div');
+            card.className = 'month-card';
+            card.innerHTML = `<div class="month-name">${monthNames[m]}</div>`;
+            
+            const daysGrid = document.createElement('div');
+            daysGrid.className = 'days-grid';
+            ['SUN','MON','TUE','WED','THU','FRI','SAT'].forEach(d => {
+                daysGrid.innerHTML += `<div class="day-label">${d}</div>`;
+            });
+
+            const firstDay = new Date(year, m, 1).getDay();
+            const daysInMonth = new Date(year, m + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) daysGrid.innerHTML += `<div></div>`;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const date = new Date(year, m, d);
+                const dayOfWeek = date.getDay();
+                const fastName = getLentInfo(date, year, easter);
+                
+                let statusClass = "neutral";
+                let tooltip = "";
+
+                if (fastName) {
+                    statusClass = "prohibited";
+                    tooltip = "Prohibited: " + fastName;
+                } else if (dayOfWeek === 0 || dayOfWeek === 4) {
+                    statusClass = "permitted";
+                    tooltip = "Recommended Wedding Day";
+                }
+
+                const dayDiv = document.createElement('div');
+                dayDiv.className = `day ${statusClass}`;
+                dayDiv.innerText = d;
+                dayDiv.setAttribute('data-tooltip', tooltip);
+                daysGrid.appendChild(dayDiv);
+            }
+            card.appendChild(daysGrid);
+            grid.appendChild(card);
+        }
+    }
+
+    renderCalendar();
+</script>
+</body>
+</html>
