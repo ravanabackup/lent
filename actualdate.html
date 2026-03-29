@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Liturgical Computation Engine - Deep Search</title>
+  <style>
+    :root {
+      --bg-color: #0d0d0d;
+      --term-bg: #1a1a1a;
+      --text-main: #00ff00;
+      --text-dim: #008f00;
+      --text-highlight: #ccff00;
+      --text-info: #00ffff;
+      --text-alert: #ff3333;
+    }
+    body { font-family:'Courier New',monospace; background:var(--bg-color); display:flex; justify-content:center; padding:20px; margin:0; height:100vh; box-sizing:border-box; }
+    .terminal { background:var(--term-bg); color:var(--text-main); width:100%; max-width:900px; padding:20px; border:2px solid #333; border-radius:8px; box-shadow:0 0 30px rgba(0,255,0,0.1); display:flex; flex-direction:column; overflow:hidden; }
+    .header { border-bottom:1px solid #333; padding-bottom:15px; margin-bottom:15px; display:flex; gap:15px; align-items:center; flex-wrap:wrap; }
+    .controls { display:flex; align-items:center; gap:10px; }
+    input, select { background:#000; border:1px solid var(--text-dim); color:var(--text-highlight); font-family:inherit; font-size:1rem; padding:5px; }
+    input { width:100px; text-align:center; }
+    button { background:var(--text-dim); color:#000; border:none; padding:10px 20px; cursor:pointer; font-weight:bold; font-family:inherit; text-transform:uppercase; }
+    button:hover { background:var(--text-main); }
+    .log-container { flex-grow:1; overflow-y:auto; font-size:0.85rem; line-height:1.2; padding-right:10px; background:#000; padding:10px; border:1px solid #222; }
+    .line { margin-bottom:2px; }
+    .val { color:var(--text-highlight); font-weight:bold; }
+    .match { color:#000; background:var(--text-highlight); padding:0 5px; font-weight:bold; display:inline-block; margin:2px 0; }
+    .summary-box { border:1px solid var(--text-info); padding:10px; margin-top:10px; color:var(--text-info); }
+    .progress-bar { width:100%; height:4px; background:#333; margin:10px 0; display:none; }
+    .progress-fill { height:100%; background:var(--text-info); width:0%; }
+  </style>
+</head>
+<body>
+<div class="terminal">
+  <div class="header">
+    <div class="controls">
+      <span>START_AD >></span> <input type="number" id="startYear" value="33" min="1">
+      <span>END_AD >></span> <input type="number" id="endYear" value="2100" min="1">
+      <span>GOOD_FRIDAY_DATE >></span>
+      <select id="gfMonth">
+        <option value="3">April</option>
+        <option value="2">March</option>
+      </select>
+      <input type="number" id="gfDay" value="3" min="1" max="31">
+      <button onclick="runDeepSearch()">EXECUTE SCAN</button>
+    </div>
+  </div>
+  <div class="progress-bar" id="pBar"><div class="progress-fill" id="pFill"></div></div>
+  <div id="log" class="log-container" aria-live="polite">
+    <div>System ready. Awaiting instruction...</div>
+  </div>
+</div>
+
+<script>
+  const log = document.getElementById('log');
+  const pBar = document.getElementById('pBar');
+  const pFill = document.getElementById('pFill');
+
+  function write(html) {
+    const div = document.createElement('div');
+    div.className = "line";
+    div.innerHTML = `> ${html}`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function calculateEaster(Y) {
+    const a = Y % 19;
+    const b = Math.floor(Y / 100);
+    const c = Y % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31);
+    const day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(Y, month - 1, day);
+  }
+
+  function calculateGoodFriday(Y) {
+    const easter = calculateEaster(Y);
+    const gf = new Date(easter);
+    gf.setDate(easter.getDate() - 2);
+    return { gf, easter };
+  }
+
+  async function runDeepSearch() {
+    const start = parseInt(document.getElementById('startYear').value);
+    const end = parseInt(document.getElementById('endYear').value);
+    const targetMonth = parseInt(document.getElementById('gfMonth').value);
+    const targetDay = parseInt(document.getElementById('gfDay').value);
+
+    log.innerHTML = "<div>System ready. Awaiting instruction...</div>";
+    pBar.style.display = "block";
+    let matches = [];
+
+    write(`SCANNING TEMPORAL RANGE: AD ${start} TO AD ${end}...`);
+    write(`TARGET GOOD FRIDAY DATE: ${targetMonth+1}/${targetDay}`);
+
+    const step = Math.max(1, Math.ceil((end - start) / 100));
+
+    for (let y = start; y <= end; y++) {
+      const { gf, easter } = calculateGoodFriday(y);
+      if (gf.getMonth() === targetMonth && gf.getDate() === targetDay) {
+        matches.push(y);
+        write(`MATCH FOUND [YEAR ${y}]: <span class="match">GOOD FRIDAY - ${gf.toDateString()}</span> (EASTER: ${easter.toDateString()})`);
+      }
+      if ((y - start) % step === 0) {
+        pFill.style.width = `${((y - start) / (end - start)) * 100}%`;
+        await new Promise(r => setTimeout(r, 1));
+      }
+    }
+
+    pBar.style.display = "none";
+
+    const summaryHTML = `
+      <div class="summary-box">
+        SEARCH COMPLETE. TOTAL MATCHES: <span class="val">${matches.length}</span><br>
+        LIST: ${matches.join(", ")}
+      </div>
+    `;
+    write(summaryHTML);
+  }
+</script>
+</body>
+</html>
